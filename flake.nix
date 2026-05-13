@@ -10,6 +10,14 @@
       toSystems = passPkgs: allSystems (system: passPkgs (import nixpkgs { inherit system; }));
     in
     {
+      packages = toSystems (pkgs: {
+        default = pkgs.callPackage ./package.nix { };
+      });
+
+      overlay = _final: prev: {
+        vimPlugins.todoview-nvim = prev.pkgs.callPackage ./package.nix { };
+      };
+
       devShells = toSystems (pkgs: {
         default = pkgs.mkShell {
           name = "todoview.nvim";
