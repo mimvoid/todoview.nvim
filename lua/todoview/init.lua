@@ -12,7 +12,7 @@ local M = {}
 local cfg = {
   default_todo_file = "~/todo.txt",
   completion = {
-    open_icon = "",
+    incomplete_icon = "",
     completed_icon = "",
   },
 }
@@ -61,14 +61,14 @@ local function render_line(line, buf, ns_id, line_nr)
 
     -- Overlay completion indicator "x".
     vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
-      virt_text = { { overlay, "DiagnosticSignOk" } },
+      virt_text = { { overlay, "TodoviewCompleted" } },
       virt_text_pos = "overlay",
     })
 
     -- Inline the rest of the icon string.
     if rest ~= "" then
       vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
-        virt_text = { { rest, "DiagnosticSignOk" } },
+        virt_text = { { rest, "TodoviewCompleted" } },
         virt_text_pos = "inline",
       })
     end
@@ -78,8 +78,8 @@ local function render_line(line, buf, ns_id, line_nr)
     -- Completion icon.
     vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
       virt_text = {
-        { cfg.completion.incomplete_icon, "DiagnosticSignWarn" },
-        { " ", "DiagnosticSignWarn" },
+        { cfg.completion.incomplete_icon, "TodoviewIncomplete" },
+        { " ", "TodoviewIncomplete" },
       },
       virt_text_pos = "inline",
     })
@@ -88,14 +88,14 @@ local function render_line(line, buf, ns_id, line_nr)
     local prio = string.match(line, "^%(%u%)")
     if prio ~= nil then
       local priority_hl_groups = {
-        ["(A)"] = "DiagnosticSignError",
-        ["(B)"] = "DiagnosticSignWarn",
-        ["(C)"] = "DiagnosticSignInfo",
-        ["(D)"] = "DiagnosticSignHint",
+        ["(A)"] = "TodoviewPrioA",
+        ["(B)"] = "TodoviewPrioB",
+        ["(C)"] = "TodoviewPrioC",
+        ["(D)"] = "TodoviewPrioD",
       }
       vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
         end_col = 3,
-        hl_group = priority_hl_groups[prio] or "DiagnosticSignOk",
+        hl_group = priority_hl_groups[prio] or "TodoviewPrioDefault",
       })
     end
   end
@@ -139,6 +139,9 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("TodoviewOpen", function(_args)
     M.open()
   end, {})
+
+  -- Set highlight groups.
+  require("todoview.highlight").set_hl_groups(namespace_id())
 
   -- Setup autocommands
   local augroup = vim.api.nvim_create_augroup("todoview", { clear = true })
