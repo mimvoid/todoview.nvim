@@ -52,22 +52,38 @@ end
 ---@param ns_id integer
 ---@param line_nr integer
 local function render_line(line, buf, ns_id, line_nr)
-  if string.sub(line, 0, 2) == "x " then
+  local char = 0
+  local completed = string.sub(line, 0, 2) == "x "
+
+  if completed then
     -- Completion icon.
-    vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, 0, {
+    vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
       virt_text = { { cfg.completion.completed_icon .. " ", "DiagnosticSignOk" } },
       virt_text_pos = "overlay",
     })
+    char = 2
+  else
+    -- Completion icon.
+    vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
+      virt_text = { { cfg.completion.open_icon .. " ", "DiagnosticSignWarn" } },
+      virt_text_pos = "inline",
+    })
 
-    -- No more rendering to do.
-    return
+    -- Highlight priority.
+    local prio = string.match(line, "^%(%u%)")
+    if prio ~= nil then
+      local priority_hl_groups = {
+        ["(A)"] = "DiagnosticSignError",
+        ["(B)"] = "DiagnosticSignWarn",
+        ["(C)"] = "DiagnosticSignInfo",
+        ["(D)"] = "DiagnosticSignHint",
+      }
+      vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
+        end_col = 3,
+        hl_group = priority_hl_groups[prio] or "DiagnosticSignOk",
+      })
+    end
   end
-
-  -- Completion icon.
-  vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, 0, {
-    virt_text = { { cfg.completion.open_icon .. " ", "DiagnosticSignWarn" } },
-    virt_text_pos = "inline",
-  })
 end
 
 ---Render the current buffer if rendering is enabled and the filetype is "todotxt".
