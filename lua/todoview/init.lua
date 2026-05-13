@@ -56,16 +56,31 @@ local function render_line(line, buf, ns_id, line_nr)
   local completed = string.sub(line, 0, 2) == "x "
 
   if completed then
-    -- Completion icon.
+    local overlay = vim.fn.strcharpart(cfg.completion.completed_icon, 0, 1)
+    local rest = vim.fn.strcharpart(cfg.completion.completed_icon, 1)
+
+    -- Overlay completion indicator "x".
     vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
-      virt_text = { { cfg.completion.completed_icon .. " ", "DiagnosticSignOk" } },
+      virt_text = { { overlay, "DiagnosticSignOk" } },
       virt_text_pos = "overlay",
     })
+
+    -- Inline the rest of the icon string.
+    if rest ~= "" then
+      vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
+        virt_text = { { rest, "DiagnosticSignOk" } },
+        virt_text_pos = "inline",
+      })
+    end
+
     char = 2
   else
     -- Completion icon.
     vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
-      virt_text = { { cfg.completion.open_icon .. " ", "DiagnosticSignWarn" } },
+      virt_text = {
+        { cfg.completion.incomplete_icon, "DiagnosticSignWarn" },
+        { " ", "DiagnosticSignWarn" },
+      },
       virt_text_pos = "inline",
     })
 
