@@ -1,7 +1,8 @@
 local M = {}
 
----@param ns_id integer
-function M.set_hl_groups(ns_id)
+function M.set_hl_groups()
+  local ns_id = vim.api.nvim_create_namespace("TodoviewHighlight")
+
   -- Completion icons
   vim.api.nvim_set_hl(ns_id, "TodoviewCompleted", { link = "DiagnosticFloatingOk" })
   vim.api.nvim_set_hl(ns_id, "TodoviewIncomplete", { link = "DiagnosticFloatingWarn" })

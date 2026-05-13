@@ -107,7 +107,7 @@ function M.render_buf(buf)
   buf = normalize_buf_id(buf)
 
   if vim.bo[buf].filetype == "todotxt" then
-    local ns_id = vim.api.nvim_get_namespaces().todoview
+    local ns_id = vim.api.nvim_create_namespace("TodoviewExtmarks")
 
     -- Reset before rendering.
     vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
@@ -125,7 +125,7 @@ end
 function M.clear_buf(buf)
   buf = normalize_buf_id(buf)
   if vim.bo[buf].filetype == "todotxt" then
-    local ns_id = vim.api.nvim_get_namespaces().todoview
+    local ns_id = vim.api.nvim_get_namespaces().TodoviewExtmarks
     if ns_id ~= nil then
       vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
     end
@@ -188,10 +188,8 @@ function M.setup(opts)
     M.open()
   end, {})
 
-  local ns_id = vim.api.nvim_create_namespace("todoview")
-
   -- Set highlight groups.
-  require("todoview.highlight").set_hl_groups(ns_id)
+  require("todoview.highlight").set_hl_groups()
   init_autocmds()
 end
 
