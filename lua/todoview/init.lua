@@ -21,8 +21,9 @@ local data = {
   rendering = true,
 }
 
-local function can_render_current_buf()
-  return data.rendering and vim.bo.filetype == "todotxt"
+---@param buf integer buffer ID
+local function can_render_buf(buf)
+  return data.rendering and vim.bo[buf].filetype == "todotxt"
 end
 
 ---Get the namespace ID for todoview, or create one if it does not exist.
@@ -37,7 +38,10 @@ function M.open()
 end
 
 ---Toggle todoview rendering.
-function M.toggle()
+---@param buf? integer buffer ID
+function M.toggle(buf)
+  buf = buf or 0
+
   if data.rendering then
     M.clear_buf()
     data.rendering = false
@@ -102,9 +106,11 @@ local function render_line(line, buf, ns_id, line_nr)
 end
 
 ---Render the current buffer if rendering is enabled and the filetype is "todotxt".
-function M.render_buf()
-  if can_render_current_buf() then
-    local buf = 0
+---@param buf? integer buffer ID
+function M.render_buf(buf)
+  buf = buf or 0
+
+  if can_render_buf(buf) then
     local ns_id = namespace_id()
 
     for i, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, true)) do
@@ -113,19 +119,72 @@ function M.render_buf()
   end
 end
 
----Clear the current buffer's render if rendering is enabled and the filetype is "todotxt".
-function M.clear_buf()
-  if can_render_current_buf() then
-    vim.api.nvim_buf_clear_namespace(0, namespace_id(), 0, -1)
-  end
+---Clear the current buffer's extmarks with the todoview namespace.
+---@param buf? integer buffer ID
+function M.clear_buf(buf)
+  buf = buf or 0
+  vim.api.nvim_buf_clear_namespace(buf, namespace_id(), 0, -1)
 end
 
 ---Refresh the current buffer's render if rendering is enabled and the filetype is "todotxt".
-function M.refresh_buf()
-  if can_render_current_buf() then
-    M.clear_buf()
-    M.render_buf()
+---@param buf? integer buffer ID
+function M.refresh_buf(buf)
+  buf = buf or 0
+  if can_render_buf(buf) then
+    M.clear_buf(buf)
+    M.render_buf(buf)
   end
+end
+
+---@param augroup string|integer? Group name or id to match against.
+local function create_autocmds(augroup)
+  vim.api.nvim_create_autocmd({ "BufEnter", "TextChanged" }, {
+    group = augroup,
+    callback = function(args)
+      M.refresh_buf(args.buf)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("InsertEnter", {
+    group = augroup,
+    callback = function(args)
+      M.clear_buf(args.buf)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("InsertLeave", {
+    group = augroup,
+    callback = function(args)
+      M.render_buf(args.buf)
+    end,
+  })
+end
+
+function init_autocmds()
+  local augroup = vim.api.nvim_create_augroup("todoview", { clear = true })
+
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[buf].filetype == "todotxt" then
+      -- Called setup when a todo.txt file was opened.
+      create_autocmds(augroup)
+
+      -- Start rendering current buffer if able.
+      M.render_buf(0)
+      return
+    end
+  end
+
+  -- Create autocommands when entering a todo.txt file for the first time.
+  vim.api.nvim_create_autocmd("FileType", {
+    group = augroup,
+    callback = function(args)
+      local filetype = args.match
+      if filetype == "todotxt" then
+        create_autocmds(augroup)
+        vim.api.nvim_del_autocmd(args.id)
+      end
+    end,
+  })
 end
 
 ---@param opts? todoview.Config
@@ -142,24 +201,7 @@ function M.setup(opts)
 
   -- Set highlight groups.
   require("todoview.highlight").set_hl_groups(namespace_id())
-
-  -- Setup autocommands
-  local augroup = vim.api.nvim_create_augroup("todoview", { clear = true })
-
-  vim.api.nvim_create_autocmd({ "BufEnter", "InsertLeave" }, {
-    group = augroup,
-    callback = M.render_buf,
-  })
-
-  vim.api.nvim_create_autocmd("InsertEnter", {
-    group = augroup,
-    callback = M.clear_buf,
-  })
-
-  vim.api.nvim_create_autocmd("TextChanged", {
-    group = augroup,
-    callback = M.refresh_buf,
-  })
+  init_autocmds()
 end
 
 return M
