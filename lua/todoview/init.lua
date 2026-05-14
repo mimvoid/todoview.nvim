@@ -202,7 +202,7 @@ end
 
 ---@param opts? todoview.Config
 function M.setup(opts)
-  cfg = vim.tbl_deep_extend("force", opts, cfg)
+  cfg = vim.tbl_deep_extend("keep", opts, cfg)
 
   vim.api.nvim_create_user_command("Todoview", function(_args)
     M.toggle()
