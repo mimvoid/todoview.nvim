@@ -47,36 +47,31 @@ function M.toggle(buf)
   end
 end
 
----@param line string
 ---@param buf integer buffer ID, assumed to be normalized.
 ---@param ns_id integer
----@param line_nr integer
-local function render_line(line, buf, ns_id, line_nr)
-  local char = 0
-  local completed = string.sub(line, 0, 2) == "x "
+---@param row integer
+---@param line string
+local function render_line(buf, ns_id, row, line)
+  local task = require("todoview.task").parse_task(line)
 
-  if completed then
+  if task.completed then
     local overlay = vim.fn.strcharpart(cfg.completion.completed_icon, 0, 1)
     local rest = vim.fn.strcharpart(cfg.completion.completed_icon, 1)
 
     -- Overlay completion indicator "x".
-    vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
+    vim.api.nvim_buf_set_extmark(buf, ns_id, row, 0, {
       virt_text = { { overlay, "TodoviewCompleted" } },
       virt_text_pos = "overlay",
     })
 
     -- Inline the rest of the icon string.
-    if rest ~= "" then
-      vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
-        virt_text = { { rest, "TodoviewCompleted" } },
-        virt_text_pos = "inline",
-      })
-    end
-
-    char = 2
+    vim.api.nvim_buf_set_extmark(buf, ns_id, row, 0, {
+      virt_text = { { rest, "TodoviewCompleted" } },
+      virt_text_pos = "inline",
+    })
   else
     -- Completion icon.
-    vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
+    vim.api.nvim_buf_set_extmark(buf, ns_id, row, 0, {
       virt_text = {
         { cfg.completion.incomplete_icon, "TodoviewIncomplete" },
         { " ", "TodoviewIncomplete" },
@@ -84,18 +79,16 @@ local function render_line(line, buf, ns_id, line_nr)
       virt_text_pos = "inline",
     })
 
-    -- Highlight priority.
-    local prio = string.match(line, "^%(%u%)")
-    if prio ~= nil then
+    if task.priority then
       local priority_hl_groups = {
         ["(A)"] = "TodoviewPrioA",
         ["(B)"] = "TodoviewPrioB",
         ["(C)"] = "TodoviewPrioC",
         ["(D)"] = "TodoviewPrioD",
       }
-      vim.api.nvim_buf_set_extmark(buf, ns_id, line_nr, char, {
-        end_col = 3,
-        hl_group = priority_hl_groups[prio] or "TodoviewPrioDefault",
+      vim.api.nvim_buf_set_extmark(buf, ns_id, row, task.priority.start_col, {
+        end_col = task.priority.end_col,
+        hl_group = priority_hl_groups[task.priority.text] or "TodoviewPrioDefault",
       })
     end
   end
@@ -106,16 +99,13 @@ end
 function M.render_buf(buf)
   buf = normalize_buf_id(buf)
 
-  if vim.bo[buf].filetype == "todotxt" then
+  if state.rendering and vim.bo[buf].filetype == "todotxt" then
+    -- Get fresh namespace.
     local ns_id = vim.api.nvim_create_namespace("TodoviewExtmarks")
-
-    -- Reset before rendering.
     vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
 
-    if state.rendering then
-      for i, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, true)) do
-        render_line(line, buf, ns_id, i - 1)
-      end
+    for i, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, true)) do
+      render_line(buf, ns_id, i - 1, line)
     end
   end
 end
