@@ -1,14 +1,21 @@
 local M = {}
 
 ---@class todoview.Config.Completion
----@field enable_overdue? boolean
 ---@field pending_icon? string
 ---@field completed_icon? string
 ---@field overdue_icon? string
 
+---@class todoview.Config.Date
+---@field enable? boolean Enable rendering of the date
+---@field format? string How to format the date, as passed to `os.date`
+
 ---@class todoview.Config
 ---@field default_todo_file? string
+---@field enable_overdue? boolean
 ---@field completion? todoview.Config.Completion
+---@field completion_date? todoview.Config.Date
+---@field creation_date? todoview.Config.Date
+---@field due_date? todoview.Config.Date
 
 local cfg = {
   default_todo_file = "~/todo.txt",
@@ -18,6 +25,19 @@ local cfg = {
     pending_icon = "",
     completed_icon = "",
     overdue_icon = "",
+  },
+
+  completion_date = {
+    enable = true,
+    format = "%Y-%m-%d",
+  },
+  creation_date = {
+    enable = true,
+    format = "%Y-%m-%d",
+  },
+  due_date = {
+    enable = true,
+    format = "%Y-%m-%d",
   },
 }
 
@@ -49,6 +69,40 @@ function M.toggle(buf)
   else
     state.rendering = true
     M.render_buf(buf)
+  end
+end
+
+---@param buf integer
+---@param ns_id integer
+---@param row integer
+---@param config todoview.Config.Date
+---@param date_node? todoview.TaskNode
+---@param hl_group string
+---@param due? boolean
+---@return nil
+local function render_date(buf, ns_id, row, config, date_node, hl_group, due)
+  if not config.enable or date_node == nil then
+    return
+  end
+
+  if config.format and date_node.time then
+    local start_col = date_node.start_col
+    if due then
+      start_col = start_col + 4
+    end
+
+    local virt_text = os.date(config.format, date_node.time)
+    local overlay = virt_text:sub(1, 10)
+    local rest = virt_text:sub(11)
+
+    vim.api.nvim_buf_set_extmark(buf, ns_id, row, start_col, {
+      virt_text = { { overlay, hl_group } },
+      virt_text_pos = "overlay",
+    })
+    vim.api.nvim_buf_set_extmark(buf, ns_id, row, start_col + 10, {
+      virt_text = { { rest, hl_group } },
+      virt_text_pos = "inline",
+    })
   end
 end
 
@@ -91,6 +145,10 @@ local function render_task(buf, ns_id, row, task)
       })
     end
   end
+
+  render_date(buf, ns_id, row, cfg.completion_date, task.completion_date, "TodoviewCompletionDate")
+  render_date(buf, ns_id, row, cfg.creation_date, task.creation_date, "TodoviewCreationDate")
+  render_date(buf, ns_id, row, cfg.due_date, task.key_values.due, "TodoviewDueDate", true)
 end
 
 ---Render the current buffer if rendering is enabled and the filetype is "todotxt".

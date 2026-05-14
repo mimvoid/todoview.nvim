@@ -15,6 +15,11 @@ function M.set_hl_groups()
   vim.api.nvim_set_hl(ns_id, "TodoviewPrioD", { link = "DiagnosticFloatingHint" })
   vim.api.nvim_set_hl(ns_id, "TodoviewPrioDefault", { link = "DiagnosticFloatingOk" })
 
+  -- Dates
+  vim.api.nvim_set_hl(ns_id, "TodoviewCompletionDate", { link = "@comment" })
+  vim.api.nvim_set_hl(ns_id, "TodoviewCreationDate", { link = "@comment" })
+  vim.api.nvim_set_hl(ns_id, "TodoviewDueDate", { link = "@comment" })
+
   -- Activate highlight groups.
   vim.api.nvim_set_hl_ns(ns_id)
 end
