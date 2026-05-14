@@ -1,14 +1,61 @@
 local M = {}
 
----@param buf integer
----@param ns_id integer
----@param row integer
+---@class todoview.RenderArgs
+---@field buf integer
+---@field ns_id integer
+---@field row integer
+
+---@param args todoview.RenderArgs
+---@param cfg table
+---@param task todoview.Task
+---@return nil
+local function rend_completion(args, cfg, task)
+  local opts = { virt_text_pos = "inline" }
+
+  if task.completed then
+    opts.virt_text = { { cfg.completion.completed_icon, "TodoviewCompleted" } }
+    opts.end_col = 1
+    opts.conceal = ""
+  else
+    -- Pending icon.
+    local icon_hl = { cfg.completion.pending_icon, "TodoviewPending" }
+
+    if cfg.enable_overdue and require("todoview.time").is_before_now(task.key_values.due) then
+      -- Change to overdue icon.
+      icon_hl = { cfg.completion.overdue_icon, "TodoviewOverdue" }
+    end
+
+    opts.virt_text = { icon_hl, { " ", icon_hl[2] } }
+  end
+
+  vim.api.nvim_buf_set_extmark(args.buf, args.ns_id, args.row, 0, opts)
+end
+
+---@param args todoview.RenderArgs
+---@param priority todoview.TaskNode?
+---@return nil
+local function rend_priority(args, priority)
+  if priority then
+    local priority_hl_groups = {
+      ["(A)"] = "TodoviewPrioA",
+      ["(B)"] = "TodoviewPrioB",
+      ["(C)"] = "TodoviewPrioC",
+      ["(D)"] = "TodoviewPrioD",
+    }
+    vim.api.nvim_buf_set_extmark(args.buf, args.ns_id, args.row, priority.start_col, {
+      end_col = priority.end_col,
+      hl_group = priority_hl_groups[priority.text] or "TodoviewPrioDefault",
+    })
+  end
+end
+
+---@param args todoview.RenderArgs
 ---@param config todoview.Config.Date
 ---@param date_node? todoview.TaskNode
 ---@param hl_group string
 ---@param due? boolean
 ---@return nil
-local function render_date(buf, ns_id, row, config, date_node, hl_group, due)
+local function rend_date(args, config, date_node, hl_group, due)
   if not config.enable or date_node == nil then
     return
   end
@@ -19,17 +66,11 @@ local function render_date(buf, ns_id, row, config, date_node, hl_group, due)
       start_col = start_col + 4
     end
 
-    local virt_text = os.date(config.format, date_node.time)
-    local overlay = virt_text:sub(1, 10)
-    local rest = virt_text:sub(11)
-
-    vim.api.nvim_buf_set_extmark(buf, ns_id, row, start_col, {
-      virt_text = { { overlay, hl_group } },
-      virt_text_pos = "overlay",
-    })
-    vim.api.nvim_buf_set_extmark(buf, ns_id, row, start_col + 10, {
-      virt_text = { { rest, hl_group } },
+    vim.api.nvim_buf_set_extmark(args.buf, args.ns_id, args.row, start_col, {
+      virt_text = { { os.date(config.format, date_node.time), hl_group } },
       virt_text_pos = "inline",
+      conceal = "",
+      end_col = date_node.end_col,
     })
   end
 end
@@ -39,44 +80,15 @@ end
 ---@param row integer
 ---@param task todoview.Task
 function M.render_task(cfg, buf, ns_id, row, task)
-  if task.completed then
-    vim.api.nvim_buf_set_extmark(buf, ns_id, row, 0, {
-      virt_text = { { cfg.completion.completed_icon, "TodoviewCompleted" } },
-      virt_text_pos = "inline",
-      end_col = 1,
-      conceal = "",
-    })
-  else
-    -- Pending icon.
-    local icon_hl = { cfg.completion.pending_icon, "TodoviewPending" }
-    if cfg.enable_overdue and require("todoview.time").is_before_now(task.key_values.due) then
-      -- Change to overdue icon.
-      icon_hl = { cfg.completion.overdue_icon, "TodoviewOverdue" }
-    end
+  local args = { buf = buf, ns_id = ns_id, row = row }
 
-    -- Add completion icon.
-    vim.api.nvim_buf_set_extmark(buf, ns_id, row, 0, {
-      virt_text = { icon_hl, { " ", icon_hl[2] } },
-      virt_text_pos = "inline",
-    })
-
-    if task.priority then
-      local priority_hl_groups = {
-        ["(A)"] = "TodoviewPrioA",
-        ["(B)"] = "TodoviewPrioB",
-        ["(C)"] = "TodoviewPrioC",
-        ["(D)"] = "TodoviewPrioD",
-      }
-      vim.api.nvim_buf_set_extmark(buf, ns_id, row, task.priority.start_col, {
-        end_col = task.priority.end_col,
-        hl_group = priority_hl_groups[task.priority.text] or "TodoviewPrioDefault",
-      })
-    end
+  rend_completion(args, cfg, task)
+  if not task.completed then
+    rend_priority(args, task.priority)
   end
-
-  render_date(buf, ns_id, row, cfg.completion_date, task.completion_date, "TodoviewCompletionDate")
-  render_date(buf, ns_id, row, cfg.creation_date, task.creation_date, "TodoviewCreationDate")
-  render_date(buf, ns_id, row, cfg.due_date, task.key_values.due, "TodoviewDueDate", true)
+  rend_date(args, cfg.completion_date, task.completion_date, "TodoviewCompletionDate")
+  rend_date(args, cfg.creation_date, task.creation_date, "TodoviewCreationDate")
+  rend_date(args, cfg.due_date, task.key_values.due, "TodoviewDueDate", true)
 end
 
 return M
