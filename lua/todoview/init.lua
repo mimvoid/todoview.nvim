@@ -19,6 +19,7 @@ local cfg = {
 
 local state = {
   rendering = true,
+  bo = {},
 }
 
 ---@param buf? integer buffer ID, which may be 0 or nil
@@ -50,10 +51,8 @@ end
 ---@param buf integer buffer ID, assumed to be normalized.
 ---@param ns_id integer
 ---@param row integer
----@param line string
-local function render_line(buf, ns_id, row, line)
-  local task = require("todoview.task").parse_task(line)
-
+---@param task todoview.Task
+local function render_task(buf, ns_id, row, task)
   if task.completed then
     local overlay = vim.fn.strcharpart(cfg.completion.completed_icon, 0, 1)
     local rest = vim.fn.strcharpart(cfg.completion.completed_icon, 1)
@@ -104,10 +103,31 @@ function M.render_buf(buf)
     local ns_id = vim.api.nvim_create_namespace("TodoviewExtmarks")
     vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
 
-    for i, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, true)) do
-      render_line(buf, ns_id, i - 1, line)
+    if state.bo[buf] then
+      for row, task in pairs(state.bo[buf]) do
+        render_task(buf, ns_id, row, task)
+      end
+    else
+      state.bo[buf] = {}
+      local parse_task = require("todoview.task").parse_task
+
+      for i, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, true)) do
+        local task = parse_task(line)
+        local row = i - 1
+        state.bo[buf][row] = task
+        render_task(buf, ns_id, row, task)
+      end
     end
   end
+end
+
+---@param buf? integer buffer ID
+function M.refresh_buf(buf)
+  buf = normalize_buf_id(buf)
+  if state.bo[buf] then
+    state.bo[buf] = nil
+  end
+  M.render_buf(buf)
 end
 
 ---Clear the current buffer's extmarks with the todoview namespace.
@@ -124,11 +144,25 @@ end
 
 ---@param augroup string|integer? Group name or id to match against.
 local function create_autocmds(augroup)
-  vim.api.nvim_create_autocmd({ "BufEnter", "TextChanged", "InsertLeave" }, {
+  vim.api.nvim_create_autocmd("BufEnter", {
     group = augroup,
     callback = function(args)
       M.render_buf(args.buf)
     end,
+  })
+
+  vim.api.nvim_create_autocmd("BufDelete", {
+    group = augroup,
+    callback = function(args)
+      state.bo[args.buf] = nil
+    end
+  })
+
+  vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
+    group = augroup,
+    callback = function(args)
+      M.refresh_buf(args.buf)
+    end
   })
 
   vim.api.nvim_create_autocmd("InsertEnter", {
