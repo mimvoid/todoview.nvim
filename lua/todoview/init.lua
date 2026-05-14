@@ -58,19 +58,11 @@ end
 ---@param task todoview.Task
 local function render_task(buf, ns_id, row, task)
   if task.completed then
-    local overlay = vim.fn.strcharpart(cfg.completion.completed_icon, 0, 1)
-    local rest = vim.fn.strcharpart(cfg.completion.completed_icon, 1)
-
-    -- Overlay completion indicator "x".
     vim.api.nvim_buf_set_extmark(buf, ns_id, row, 0, {
-      virt_text = { { overlay, "TodoviewCompleted" } },
-      virt_text_pos = "overlay",
-    })
-
-    -- Inline the rest of the icon string.
-    vim.api.nvim_buf_set_extmark(buf, ns_id, row, 0, {
-      virt_text = { { rest, "TodoviewCompleted" } },
+      virt_text = { { cfg.completion.completed_icon, "TodoviewCompleted" } },
       virt_text_pos = "inline",
+      end_col = 1,
+      conceal = "",
     })
   else
     -- Pending icon.
@@ -113,6 +105,10 @@ function M.render_buf(buf)
     -- Get fresh namespace.
     local ns_id = vim.api.nvim_create_namespace("TodoviewExtmarks")
     vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
+
+    if vim.wo.conceallevel < 2 then
+      vim.wo.conceallevel = 2
+    end
 
     if state.bo[buf] then
       for row, task in pairs(state.bo[buf]) do
