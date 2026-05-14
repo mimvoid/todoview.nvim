@@ -15,24 +15,8 @@ local M = {}
 ---@field contexts todoview.TaskNode[]
 ---@field key_values table<string, todoview.TaskNode>
 
----Length of a date string in YYYY-MM-DD format.
-local DATE_LEN = 10
-
----Try to parse a string in YYYY-MM-DD format and get its timestamp.
----@param str string
----@return integer?
-local function timestamp(str)
-  local param = {
-    year = str:sub(1, 4),
-    month = str:sub(6, 7),
-    day = str:sub(9, 10),
-  }
-
-  local success, time = pcall(os.time, param)
-  if success then
-    return time
-  end
-end
+---Length of a date string in YYYY-MM-DD (%Y-%m-%d) format.
+DATE_LEN = 10
 
 ---@param str string
 ---@return todoview.Task
@@ -60,16 +44,17 @@ function M.parse_task(str)
     col = col + 4
   end
 
-  local date_pattern = "^%d%d%-%d%d%%-%d%d%d%d $"
+  local date_pattern = "^%d%d%d%d%-%d%d%-%d%d% $"
   local date = str:sub(col + 1, col + 1 + DATE_LEN):match(date_pattern)
+  local parse_time = require("todoview.time").parse_time
 
   if date then
     local date_node = {
       text = date:sub(1, -2),
       start_col = col,
       end_col = col + DATE_LEN,
-      time = timestamp(date),
     }
+    date_node.time = parse_time(date_node.text)
     col = col + 1 + DATE_LEN
 
     if task.completed then
@@ -82,8 +67,8 @@ function M.parse_task(str)
           text = creation_date:sub(1, -2),
           start_col = col,
           end_col = col + DATE_LEN,
-          time = timestamp(date),
         }
+        task.creation_date.time = parse_time(task.creation_date.text)
         col = col + 1 + DATE_LEN
       end
     else
@@ -116,7 +101,7 @@ function M.parse_task(str)
           text = value,
           start_col = col,
           end_col = col + len,
-          time = timestamp(value),
+          time = parse_time(value),
         }
       end
     end

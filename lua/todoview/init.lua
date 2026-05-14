@@ -67,12 +67,9 @@ local function render_task(buf, ns_id, row, task)
   else
     -- Pending icon.
     local icon_hl = { cfg.completion.pending_icon, "TodoviewPending" }
-
-    if cfg.enable_overdue and task.key_values.due and task.key_values.due.time then
-      if task.key_values.due.time < os.time() then
-        -- Change to overdue icon.
-        icon_hl = { cfg.completion.overdue_icon, "TodoviewOverdue" }
-      end
+    if cfg.enable_overdue and require("todoview.time").is_before_now(task.key_values.due) then
+      -- Change to overdue icon.
+      icon_hl = { cfg.completion.overdue_icon, "TodoviewOverdue" }
     end
 
     -- Add completion icon.
