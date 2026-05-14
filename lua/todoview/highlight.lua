@@ -5,7 +5,8 @@ function M.set_hl_groups()
 
   -- Completion icons
   vim.api.nvim_set_hl(ns_id, "TodoviewCompleted", { link = "DiagnosticFloatingOk" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewIncomplete", { link = "DiagnosticFloatingWarn" })
+  vim.api.nvim_set_hl(ns_id, "TodoviewPending", { link = "DiagnosticFloatingWarn" })
+  vim.api.nvim_set_hl(ns_id, "TodoviewOverdue", { link = "DiagnosticFloatingError" })
 
   -- Priority
   vim.api.nvim_set_hl(ns_id, "TodoviewPrioA", { link = "DiagnosticFloatingError" })

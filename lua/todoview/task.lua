@@ -4,6 +4,7 @@ local M = {}
 ---@field text string
 ---@field start_col integer 0-based start column index, inclusive
 ---@field end_col integer 0-based end column index, exclusive
+---@field time? integer the text parsed into a timestamp, if successful
 
 ---@class todoview.Task
 ---@field completed boolean
@@ -13,6 +14,25 @@ local M = {}
 ---@field projects todoview.TaskNode[]
 ---@field contexts todoview.TaskNode[]
 ---@field key_values table<string, todoview.TaskNode>
+
+---Length of a date string in YYYY-MM-DD format.
+local DATE_LEN = 10
+
+---Try to parse a string in YYYY-MM-DD format and get its timestamp.
+---@param str string
+---@return integer?
+local function timestamp(str)
+  local param = {
+    year = str:sub(1, 4),
+    month = str:sub(6, 7),
+    day = str:sub(9, 10),
+  }
+
+  local success, time = pcall(os.time, param)
+  if success then
+    return time
+  end
+end
 
 ---@param str string
 ---@return todoview.Task
@@ -41,35 +61,34 @@ function M.parse_task(str)
   end
 
   local date_pattern = "^%d%d%-%d%d%%-%d%d%d%d $"
-  local date = string.match(string.sub(str, col + 1, col + 11), date_pattern)
+  local date = str:sub(col + 1, col + 1 + DATE_LEN):match(date_pattern)
 
   if date then
+    local date_node = {
+      text = date:sub(1, -2),
+      start_col = col,
+      end_col = col + DATE_LEN,
+      time = timestamp(date),
+    }
+    col = col + 1 + DATE_LEN
+
     if task.completed then
       -- Found completion date
-      task.completion_date = {
-        text = string.sub(date, 1, -2),
-        start_col = col,
-        end_col = col + 10,
-      }
-      col = col + 11
+      task.completion_date = date_node
 
-      local creation_date = string.match(string.sub(str, col + 1, col + 11), date_pattern)
+      local creation_date = str:sub(col + 1, col + 1 + DATE_LEN):match(date_pattern)
       if creation_date then
         task.creation_date = {
-          text = string.sub(creation_date, 1, -2),
+          text = creation_date:sub(1, -2),
           start_col = col,
-          end_col = col + 10,
+          end_col = col + DATE_LEN,
+          time = timestamp(date),
         }
-        col = col + 11
+        col = col + 1 + DATE_LEN
       end
     else
       -- Found creation date
-      task.creation_date = {
-        text = string.sub(date, 1, -2),
-        start_col = col,
-        end_col = col + 10,
-      }
-      col = col + 11
+      task.creation_date = date_node
     end
   end
 
@@ -97,6 +116,7 @@ function M.parse_task(str)
           text = value,
           start_col = col,
           end_col = col + len,
+          time = timestamp(value),
         }
       end
     end

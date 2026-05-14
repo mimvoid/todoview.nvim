@@ -1,9 +1,10 @@
 local M = {}
 
 ---@class todoview.Config.Completion
----@field open_icon? string
+---@field enable_overdue? boolean
+---@field pending_icon? string
 ---@field completed_icon? string
----@field hl_group? string
+---@field overdue_icon? string
 
 ---@class todoview.Config
 ---@field default_todo_file? string
@@ -11,9 +12,12 @@ local M = {}
 
 local cfg = {
   default_todo_file = "~/todo.txt",
+  enable_overdue = false,
+
   completion = {
-    incomplete_icon = "",
+    pending_icon = "",
     completed_icon = "",
+    overdue_icon = "",
   },
 }
 
@@ -69,12 +73,19 @@ local function render_task(buf, ns_id, row, task)
       virt_text_pos = "inline",
     })
   else
-    -- Completion icon.
+    -- Pending icon.
+    local icon_hl = { cfg.completion.pending_icon, "TodoviewPending" }
+
+    if cfg.enable_overdue and task.key_values.due and task.key_values.due.time then
+      if task.key_values.due.time < os.time() then
+        -- Change to overdue icon.
+        icon_hl = { cfg.completion.overdue_icon, "TodoviewOverdue" }
+      end
+    end
+
+    -- Add completion icon.
     vim.api.nvim_buf_set_extmark(buf, ns_id, row, 0, {
-      virt_text = {
-        { cfg.completion.incomplete_icon, "TodoviewIncomplete" },
-        { " ", "TodoviewIncomplete" },
-      },
+      virt_text = { icon_hl, { " ", icon_hl[2] } },
       virt_text_pos = "inline",
     })
 
@@ -155,14 +166,14 @@ local function create_autocmds(augroup)
     group = augroup,
     callback = function(args)
       state.bo[args.buf] = nil
-    end
+    end,
   })
 
   vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
     group = augroup,
     callback = function(args)
       M.refresh_buf(args.buf)
-    end
+    end,
   })
 
   vim.api.nvim_create_autocmd("InsertEnter", {
