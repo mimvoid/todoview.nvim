@@ -6,7 +6,7 @@ local M = {}
 ---@field row integer
 
 ---@param args todoview.RenderArgs
----@param cfg table
+---@param cfg todoview.InternalConfig
 ---@param task todoview.Task
 ---@return nil
 local function rend_completion(args, cfg, task)
@@ -75,6 +75,7 @@ local function rend_date(args, config, date_node, hl_group, due)
   end
 end
 
+---@param cfg todoview.InternalConfig
 ---@param buf integer buffer ID, assumed to be normalized.
 ---@param ns_id integer
 ---@param row integer

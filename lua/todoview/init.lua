@@ -17,6 +17,13 @@ local M = {}
 ---@field creation_date? todoview.Config.Date
 ---@field due_date? todoview.Config.Date
 
+---@class todoview.InternalConfig
+---@field default_todo_file string
+---@field enable_overdue boolean
+---@field completion todoview.Config.Completion
+---@field completion_date todoview.Config.Date
+---@field creation_date todoview.Config.Date
+---@field due_date todoview.Config.Date
 local cfg = {
   default_todo_file = "~/todo.txt",
   enable_overdue = false,
