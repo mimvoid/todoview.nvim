@@ -29,15 +29,15 @@ function M.parse_task(str)
     key_values = {},
   }
 
-  if string.sub(str, 1, 2) == "x " then
+  if str:sub(1, 2) == "x " then
     task.completed = true
     col = col + 2
   end
 
-  local priority = string.match(string.sub(str, col + 1, col + 4), "^%(%u%) $")
-  if priority ~= nil then
+  local priority = str:sub(col + 1, col + 4):match("^%(%u%) $")
+  if priority then
     task.priority = {
-      text = string.sub(priority, 1, -2),
+      text = priority:sub(1, -2),
       start_col = col,
       end_col = col + 3,
     }
@@ -78,10 +78,10 @@ function M.parse_task(str)
   end
 
   -- Find projects, contexts, and key-value pairs.
-  for word in string.gmatch(string.sub(str, col + 1), "([^ ]+)") do
+  for word in str:sub(col + 1):gmatch("([^ ]+)") do
     local len = vim.fn.strchars(word)
 
-    local first_char = string.sub(word, 1, 1)
+    local first_char = word:sub(1, 1)
     if first_char == "+" then
       table.insert(task.projects, {
         text = word,
@@ -95,7 +95,7 @@ function M.parse_task(str)
         end_col = col + len,
       })
     else
-      local key, value = string.match(word, "([^:]+):([^:]+)")
+      local key, value = word:match("([^:]+):([^:]+)")
       if key and value then
         task.key_values[key] = {
           text = value,

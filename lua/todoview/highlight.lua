@@ -3,22 +3,26 @@ local M = {}
 function M.set_hl_groups()
   local ns_id = vim.api.nvim_create_namespace("TodoviewHighlight")
 
-  -- Completion icons
-  vim.api.nvim_set_hl(ns_id, "TodoviewCompleted", { link = "DiagnosticFloatingOk" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewPending", { link = "DiagnosticFloatingWarn" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewOverdue", { link = "DiagnosticFloatingError" })
+  for group, link in pairs({
+    -- Completion icons
+    Completed = "DiagnosticFloatingOk",
+    Pending = "DiagnosticFloatingWarn",
+    Overdue = "DiagnosticFloatingError",
 
-  -- Priority
-  vim.api.nvim_set_hl(ns_id, "TodoviewPrioA", { link = "DiagnosticFloatingError" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewPrioB", { link = "DiagnosticFloatingWarn" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewPrioC", { link = "DiagnosticFloatingInfo" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewPrioD", { link = "DiagnosticFloatingHint" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewPrioDefault", { link = "DiagnosticFloatingOk" })
+    -- Priority
+    PrioA = "DiagnosticFloatingError",
+    PrioB = "DiagnosticFloatingWarn",
+    PrioC = "DiagnosticFloatingInfo",
+    PrioD = "DiagnosticFloatingHint",
+    PrioDefault = "DiagnosticFloatingOk",
 
-  -- Dates
-  vim.api.nvim_set_hl(ns_id, "TodoviewCompletionDate", { link = "@comment" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewCreationDate", { link = "@comment" })
-  vim.api.nvim_set_hl(ns_id, "TodoviewDueDate", { link = "@comment" })
+    -- Dates
+    CompletionDate = "@comment",
+    CreationDate = "@comment",
+    DueDate = "@comment",
+  }) do
+    vim.api.nvim_set_hl(ns_id, "Todoview" .. group, { link = link })
+  end
 
   -- Activate highlight groups.
   vim.api.nvim_set_hl_ns(ns_id)

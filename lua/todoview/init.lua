@@ -24,29 +24,7 @@ local M = {}
 ---@field completion_date todoview.Config.Date
 ---@field creation_date todoview.Config.Date
 ---@field due_date todoview.Config.Date
-local cfg = {
-  default_todo_file = "~/todo.txt",
-  enable_overdue = false,
-
-  completion = {
-    pending_icon = "",
-    completed_icon = "",
-    overdue_icon = "",
-  },
-
-  completion_date = {
-    enable = true,
-    format = "%Y-%m-%d",
-  },
-  creation_date = {
-    enable = true,
-    format = "%Y-%m-%d",
-  },
-  due_date = {
-    enable = true,
-    format = "%Y-%m-%d",
-  },
-}
+local cfg = {}
 
 local state = {
   rendering = true,
@@ -56,7 +34,7 @@ local state = {
 ---@param buf? integer buffer ID, which may be 0 or nil
 ---@return integer
 local function normalize_buf_id(buf)
-  if buf == 0 or buf == nil then
+  if buf == nil or buf == 0 then
     return vim.api.nvim_get_current_buf()
   end
   return buf
@@ -84,37 +62,39 @@ end
 ---@param startrow? integer
 ---@param endrow? integer
 function M.render_buf(buf, startrow, endrow)
+  if not state.rendering or not state.bo[buf] then
+    return
+  end
+
   buf = normalize_buf_id(buf)
   startrow = startrow or 0
   endrow = endrow or -1
 
-  if state.rendering and state.bo[buf] then
-    if vim.wo.conceallevel < 2 then
-      vim.wo.conceallevel = 2
+  if vim.wo.conceallevel < 2 then
+    vim.wo.conceallevel = 2
+  end
+
+  -- Get namespaces.
+  local anchor_ns = vim.api.nvim_create_namespace("TodoviewAnchors")
+  local ns_id = vim.api.nvim_create_namespace("TodoviewExtmarks")
+  vim.api.nvim_buf_clear_namespace(buf, ns_id, startrow, endrow)
+
+  local render_task = require("todoview.render").render_task
+  local parse_task = require("todoview.task").parse_task
+
+  for i, line in ipairs(vim.api.nvim_buf_get_lines(buf, startrow, endrow, false)) do
+    local row = startrow + i - 1
+    local anchor = vim.api.nvim_buf_get_extmarks(buf, anchor_ns, { row, 0 }, { row, 0 }, {})[1]
+    local anchor_id = (anchor ~= nil) and anchor[1] or nil
+
+    if not anchor_id then
+      -- Reanchor and reparse.
+      anchor_id = vim.api.nvim_buf_set_extmark(buf, anchor_ns, row, 0, {})
+      state.bo[buf][anchor_id] = parse_task(line)
     end
 
-    -- Get namespaces.
-    local anchor_ns = vim.api.nvim_create_namespace("TodoviewAnchors")
-    local ns_id = vim.api.nvim_create_namespace("TodoviewExtmarks")
-    vim.api.nvim_buf_clear_namespace(buf, ns_id, startrow, endrow)
-
-    local render_task = require("todoview.render").render_task
-    local parse_task = require("todoview.task").parse_task
-
-    for i, line in ipairs(vim.api.nvim_buf_get_lines(buf, startrow, endrow, false)) do
-      local row = startrow + i - 1
-      local anchor = vim.api.nvim_buf_get_extmarks(buf, anchor_ns, { row, 0 }, { row, 0 }, {})[1]
-      local anchor_id = (anchor ~= nil) and anchor[1] or nil
-
-      if not anchor_id then
-        -- Reanchor and reparse.
-        anchor_id = vim.api.nvim_buf_set_extmark(buf, anchor_ns, row, 0, {})
-        state.bo[buf][anchor_id] = parse_task(line)
-      end
-
-      local task = state.bo[buf][anchor_id]
-      render_task(cfg, buf, ns_id, row, task)
-    end
+    local task = state.bo[buf][anchor_id]
+    render_task(cfg, buf, ns_id, row, task)
   end
 end
 
@@ -123,26 +103,28 @@ end
 ---@param startrow? integer
 ---@param endrow? integer
 function M.clear_buf(buf, startrow, endrow)
+  if not state.bo[buf] then
+    return
+  end
+
   buf = normalize_buf_id(buf)
   startrow = startrow or 0
   endrow = endrow or -1
 
-  if state.bo[buf] then
-    local ns_id = vim.api.nvim_get_namespaces().TodoviewExtmarks
-    if ns_id then
-      vim.api.nvim_buf_clear_namespace(buf, ns_id, startrow, endrow)
-    end
+  local ns_id = vim.api.nvim_get_namespaces().TodoviewExtmarks
+  if ns_id then
+    vim.api.nvim_buf_clear_namespace(buf, ns_id, startrow, endrow)
+  end
 
-    ns_id = vim.api.nvim_get_namespaces().TodoviewAnchors
-    if ns_id then
-      local anchors = vim.api.nvim_buf_get_extmarks(buf, ns_id, { startrow, 0 }, { endrow, 0 }, {})
-      for _, anchor in ipairs(anchors) do
-        state.bo[buf][anchor[1]] = nil
-      end
-      vim.api.nvim_buf_clear_namespace(buf, ns_id, startrow, endrow)
-    else
-      state.bo[buf] = {}
+  ns_id = vim.api.nvim_get_namespaces().TodoviewAnchors
+  if ns_id then
+    local anchors = vim.api.nvim_buf_get_extmarks(buf, ns_id, { startrow, 0 }, { endrow, 0 }, {})
+    for _, anchor in ipairs(anchors) do
+      state.bo[buf][anchor[1]] = nil
     end
+    vim.api.nvim_buf_clear_namespace(buf, ns_id, startrow, endrow)
+  else
+    state.bo[buf] = {}
   end
 end
 
@@ -168,7 +150,7 @@ local function init_buf(buf)
           once = true,
           callback = function()
             M.refresh_buf(buf_id, startrow, new_endrow + 1)
-          end
+          end,
         })
       end
     end,
@@ -209,40 +191,31 @@ local function create_autocmds(augroup)
   })
 end
 
-function init_autocmds_and_bufs()
-  local augroup = vim.api.nvim_create_augroup("todoview", { clear = true })
-  local init_with_current_buf = function()
-    create_autocmds(augroup)
-
-    -- Start rendering current buffer if able.
-    if vim.bo.filetype == "todotxt" then
-      init_buf()
-    end
-  end
-
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.bo[buf].filetype == "todotxt" then
-      init_with_current_buf()
-      return
-    end
-  end
-
-  -- Create autocommands when entering a todo.txt file for the first time.
-  vim.api.nvim_create_autocmd("FileType", {
-    group = augroup,
-    callback = function(args)
-      local filetype = args.match
-      if filetype == "todotxt" then
-        init_with_current_buf()
-        vim.api.nvim_del_autocmd(args.id)
-      end
-    end,
-  })
-end
-
 ---@param opts? todoview.Config
 function M.setup(opts)
-  cfg = vim.tbl_deep_extend("keep", opts, cfg)
+  cfg = vim.tbl_deep_extend("keep", opts, {
+    default_todo_file = "~/todo.txt",
+    enable_overdue = false,
+
+    completion = {
+      pending_icon = "",
+      completed_icon = "",
+      overdue_icon = "",
+    },
+
+    completion_date = {
+      enable = true,
+      format = "%Y-%m-%d",
+    },
+    creation_date = {
+      enable = true,
+      format = "%Y-%m-%d",
+    },
+    due_date = {
+      enable = true,
+      format = "%Y-%m-%d",
+    },
+  })
 
   vim.api.nvim_create_user_command("Todoview", function(_args)
     M.toggle()
@@ -254,7 +227,34 @@ function M.setup(opts)
 
   -- Set highlight groups.
   require("todoview.highlight").set_hl_groups()
-  init_autocmds_and_bufs()
+
+  local augroup = vim.api.nvim_create_augroup("todoview", { clear = true })
+  local init_with_current_buf = function()
+    create_autocmds(augroup)
+    if vim.bo.filetype == "todotxt" then
+      init_buf() -- Start rendering current buffer.
+    end
+  end
+
+  -- Initialize if a todo.txt buffer is currently open.
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[buf].filetype == "todotxt" then
+      init_with_current_buf()
+      return
+    end
+  end
+
+  -- No todo.txt buffers open. Initialize when the first todo.txt file is opened.
+  vim.api.nvim_create_autocmd("FileType", {
+    group = augroup,
+    callback = function(args)
+      local filetype = args.match
+      if filetype == "todotxt" then
+        init_with_current_buf()
+        vim.api.nvim_del_autocmd(args.id)
+      end
+    end,
+  })
 end
 
 return M
