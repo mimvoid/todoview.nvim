@@ -32,20 +32,23 @@ local function rend_completion(args, cfg, task)
 end
 
 ---@param args todoview.RenderArgs
----@param priority todoview.TaskNode?
+---@param config todoview.Config.Priority
+---@param task todoview.Task
 ---@return nil
-local function rend_priority(args, priority)
-  if priority then
-    local priority_hl_groups = {
-      ["(A)"] = "TodoviewPrioA",
-      ["(B)"] = "TodoviewPrioB",
-      ["(C)"] = "TodoviewPrioC",
-      ["(D)"] = "TodoviewPrioD",
-    }
-    vim.api.nvim_buf_set_extmark(args.buf, args.ns_id, args.row, priority.start_col, {
-      end_col = priority.end_col,
-      hl_group = priority_hl_groups[priority.text] or "TodoviewPrioDefault",
-    })
+local function rend_priority(args, config, task)
+  if not task.priority or not config.enable or (task.completed and not config.enable_completed) then
+    return
+  end
+
+  local opts = { end_col = task.priority.end_col }
+  if type(config.hl_group) == "function" then
+    opts.hl_group = config.hl_group(task.priority.letter)
+  else
+    opts.hl_group = config.hl_group
+  end
+
+  if opts.hl_group then
+    vim.api.nvim_buf_set_extmark(args.buf, args.ns_id, args.row, task.priority.start_col, opts)
   end
 end
 
@@ -84,9 +87,7 @@ function M.render_task(cfg, buf, ns_id, row, task)
   local args = { buf = buf, ns_id = ns_id, row = row }
 
   rend_completion(args, cfg, task)
-  if not task.completed then
-    rend_priority(args, task.priority)
-  end
+  rend_priority(args, cfg.priority, task)
   rend_date(args, cfg.completion_date, task.completion_date, "TodoviewCompletionDate")
   rend_date(args, cfg.creation_date, task.creation_date, "TodoviewCreationDate")
   rend_date(args, cfg.due_date, task.key_values.due, "TodoviewDueDate", true)

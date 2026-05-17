@@ -6,9 +6,14 @@ local M = {}
 ---@field end_col integer 0-based end column index, exclusive
 ---@field time? integer the text parsed into a timestamp, if successful
 
+---@class todoview.PriorityNode
+---@field letter string Letter of the priority
+---@field start_col integer 0-based start column index, inclusive
+---@field end_col integer 0-based end column index, exclusive
+
 ---@class todoview.Task
 ---@field completed boolean
----@field priority? todoview.TaskNode
+---@field priority? todoview.PriorityNode
 ---@field completion_date? todoview.TaskNode
 ---@field creation_date? todoview.TaskNode
 ---@field projects todoview.TaskNode[]
@@ -37,7 +42,7 @@ function M.parse_task(str)
   local priority = str:sub(col + 1, col + 4):match("^%(%u%) $")
   if priority then
     task.priority = {
-      text = priority:sub(1, -2),
+      letter = str:sub(col + 2, col + 2),
       start_col = col,
       end_col = col + 3,
     }

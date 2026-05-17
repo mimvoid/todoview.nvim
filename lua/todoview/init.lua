@@ -5,6 +5,11 @@ local M = {}
 ---@field completed_icon? string
 ---@field overdue_icon? string
 
+---@class todoview.Config.Priority
+---@field enable? boolean Enable priority rendering
+---@field enable_completed? boolean Enable rendering on completed tasks
+---@field hl_group? string|fun(letter: string): string?
+
 ---@class todoview.Config.Date
 ---@field enable? boolean Enable rendering of the date
 ---@field format? string How to format the date, as passed to `os.date`
@@ -13,6 +18,7 @@ local M = {}
 ---@field default_todo_file? string
 ---@field enable_overdue? boolean
 ---@field completion? todoview.Config.Completion
+---@field priority? todoview.Config.Priority
 ---@field completion_date? todoview.Config.Date
 ---@field creation_date? todoview.Config.Date
 ---@field due_date? todoview.Config.Date
@@ -21,6 +27,7 @@ local M = {}
 ---@field default_todo_file string
 ---@field enable_overdue boolean
 ---@field completion todoview.Config.Completion
+---@field priority todoview.Config.Priority
 ---@field completion_date todoview.Config.Date
 ---@field creation_date todoview.Config.Date
 ---@field due_date todoview.Config.Date
@@ -201,6 +208,20 @@ function M.setup(opts)
       pending_icon = "",
       completed_icon = "",
       overdue_icon = "",
+    },
+
+    priority = {
+      enable = true,
+      enable_completed = false,
+      hl_group = function(letter)
+        local hl_groups = {
+          A = "TodoviewPrioA",
+          B = "TodoviewPrioB",
+          C = "TodoviewPrioC",
+          D = "TodoviewPrioD",
+        }
+        return hl_groups[letter] or "TodoviewPrioDefault"
+      end
     },
 
     completion_date = {
