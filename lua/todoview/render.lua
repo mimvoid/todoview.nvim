@@ -65,15 +65,20 @@ end
 ---@param config todoview.Config.Date
 ---@param task todoview.Task
 ---@param date? todoview.TaskNode
+---@param default_hl_group string
 ---@return nil
-local function rend_date(args, config, task, date)
+local function rend_date(args, config, task, date, default_hl_group)
   if not config.enable or not config.format or date == nil then
     return
   end
 
   local time = require("todoview.task").parse_time(date.text)
   if time then
-    set_extmark(args, date, config.format(task, time))
+    if type(config.format) == "string" then
+      set_extmark(args, date, { { os.date(config.format, time), default_hl_group } })
+    else
+      set_extmark(args, date, config.format(task, time))
+    end
   end
 end
 
@@ -101,8 +106,8 @@ function M.render_task(cfg, buf, ns_id, row, task)
 
   rend_priority(args, cfg.priority, task) -- Call first so it's to the right of completion virt text.
   rend_completion(args, cfg.completion, task)
-  rend_date(args, cfg.completion_date, task, task.completion_date)
-  rend_date(args, cfg.creation_date, task, task.creation_date)
+  rend_date(args, cfg.completion_date, task, task.completion_date, "TodoviewCompletionDate")
+  rend_date(args, cfg.creation_date, task, task.creation_date, "TodoviewCreationDate")
   rend_tags(args, cfg.projects, task, "projects")
   rend_tags(args, cfg.contexts, task, "contexts")
   rend_tags(args, cfg.key_value, task, "key_values")

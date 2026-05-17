@@ -11,7 +11,7 @@
 
 ---@class todoview.Config.Date
 ---@field enable? boolean Enable rendering of the date
----@field format? fun(task: todoview.Task, time: integer): todoview.Format?
+---@field format? string|fun(task: todoview.Task, time: integer): todoview.Format?
 
 ---@class todoview.Config.Tag
 ---@field enable? boolean
