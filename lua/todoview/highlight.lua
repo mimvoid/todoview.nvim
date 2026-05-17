@@ -20,7 +20,9 @@ function M.set_hl_groups()
     CompletionDate = "Comment",
     CreationDate = "Comment",
 
-    -- Key values
+    -- Tags, enumlating tree-sitter-todotxt
+    Project = "String",
+    Context = "Type",
     Key = "Comment",
     Value = "Comment",
   }) do

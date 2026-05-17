@@ -13,9 +13,9 @@
 ---@field enable? boolean Enable rendering of the date
 ---@field format? fun(task: todoview.Task, time: integer): todoview.Format?
 
----@class todoview.Config.KeyValue
----@field enable? boolean Enable rendering of key-value pairs
----@field format? fun(task: todoview.Task, key: string): todoview.Format?
+---@class todoview.Config.Tag
+---@field enable? boolean
+---@field format? fun(task: todoview.Task, name: string): todoview.Format?
 
 ---@class todoview.Config
 ---@field default_todo_file? string
@@ -23,7 +23,9 @@
 ---@field priority? todoview.Config.Priority
 ---@field completion_date? todoview.Config.Date
 ---@field creation_date? todoview.Config.Date
----@field key_value? todoview.Config.KeyValue
+---@field projects? todoview.Config.Tag
+---@field contexts? todoview.Config.Tag
+---@field key_value? todoview.Config.Tag
 
 local M = {}
 
@@ -80,7 +82,27 @@ function M.default_creation_date()
   }
 end
 
----@return todoview.Config.KeyValue
+---@return todoview.Config.Tag
+function M.default_projects()
+  return {
+    enable = false,
+    format = function(_task, _project)
+      return "TodoviewProject"
+    end
+  }
+end
+
+---@return todoview.Config.Tag
+function M.default_contexts()
+  return {
+    enable = false,
+    format = function(_task, _context)
+      return "TodoviewContext"
+    end
+  }
+end
+
+---@return todoview.Config.Tag
 function M.default_key_value()
   return {
     enable = false,
@@ -103,6 +125,8 @@ function M.default_config()
     priority = M.default_priority(),
     completion_date = M.default_completion_date(),
     creation_date = M.default_creation_date(),
+    projects = M.default_projects(),
+    contexts = M.default_contexts(),
     key_value = M.default_key_value(),
   }
 end

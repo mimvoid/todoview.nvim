@@ -6,7 +6,9 @@ local M = {}
 ---@field priority todoview.Config.Priority
 ---@field completion_date todoview.Config.Date
 ---@field creation_date todoview.Config.Date
----@field key_value todoview.Config.KeyValue
+---@field projects todoview.Config.Tag
+---@field contexts todoview.Config.Tag
+---@field key_value todoview.Config.Tag
 local cfg = {}
 
 local state = {

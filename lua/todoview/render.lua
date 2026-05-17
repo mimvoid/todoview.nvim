@@ -78,15 +78,16 @@ local function rend_date(args, config, task, date)
 end
 
 ---@param args todoview.RenderArgs
----@param config todoview.Config.KeyValue
+---@param config todoview.Config.Tag
 ---@param task todoview.Task
-local function rend_key_values(args, config, task)
+---@param tag string
+local function rend_tags(args, config, task, tag)
   if not config.enable or not config.format then
     return
   end
 
-  for key, value_node in pairs(task.key_values) do
-    set_extmark(args, value_node, config.format(task, key))
+  for name, node in pairs(task[tag]) do
+    set_extmark(args, node, config.format(task, name))
   end
 end
 
@@ -102,7 +103,9 @@ function M.render_task(cfg, buf, ns_id, row, task)
   rend_completion(args, cfg.completion, task)
   rend_date(args, cfg.completion_date, task, task.completion_date)
   rend_date(args, cfg.creation_date, task, task.creation_date)
-  rend_key_values(args, cfg.key_value, task)
+  rend_tags(args, cfg.projects, task, "projects")
+  rend_tags(args, cfg.contexts, task, "contexts")
+  rend_tags(args, cfg.key_value, task, "key_values")
 end
 
 return M
