@@ -26,6 +26,25 @@ local function normalize_buf_id(buf)
   return buf
 end
 
+---@param buf? integer
+---@return string[]
+local function get_current_lines(buf, startrow, endrow)
+  if not startrow then
+    local mode = vim.api.nvim_get_mode().mode
+    if mode == "v" or mode == "V" or mode == "CTRL-V" then
+      startrow = vim.fn.getpos("v")[2] -- Start of visual selection
+    else
+      startrow = vim.fn.getpos(".")[2] -- Current line
+    end
+  end
+
+  if not endrow then
+    endrow = vim.fn.getpos(".")[2]
+  end
+
+  return vim.api.nvim_buf_get_lines(buf, startrow, endrow, false)
+end
+
 ---Open the default todo file.
 function M.open()
   vim.cmd.edit(cfg.default_todo_file)
@@ -128,6 +147,26 @@ function M.refresh_buf(buf, startrow, endrow)
 end
 
 ---@param buf? integer
+---@param startrow? integer
+---@param endrow? integer
+function M.complete(buf, startrow, endrow)
+  buf = normalize_buf_id(buf)
+  if vim.bo[buf].filetype ~= "todotxt" then
+    return
+  end
+
+  local new_lines = {}
+  for i, line in ipairs(get_current_lines(buf, startrow, endrow)) do
+    if line:sub(1, 2) == "x " then
+      new_lines[i] = line -- Already completed
+    else
+      new_lines[i] = "x " .. line -- Make completed
+    end
+  end
+  vim.api.nvim_buf_set_lines(buf, startrow, endrow, false, new_lines)
+end
+
+---@param buf? integer
 local function init_buf(buf)
   buf = normalize_buf_id(buf)
   state.bo[buf] = {}
@@ -193,6 +232,10 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("TodoviewOpen", function(_args)
     M.open()
   end, {})
+
+  vim.api.nvim_create_user_command("TodoviewComplete", function(args)
+    M.complete(0, args.line1 - 1, args.line2)
+  end, { range = true })
 
   -- Set highlight groups.
   require("todoview.highlight").set_hl_groups()
