@@ -17,12 +17,12 @@ function M.set_hl_groups()
     PrioDefault = "DiagnosticFloatingOk",
 
     -- Dates
-    CompletionDate = "@comment",
-    CreationDate = "@comment",
+    CompletionDate = "Comment",
+    CreationDate = "Comment",
 
     -- Key values
-    Key = "@comment",
-    Value = "@comment",
+    Key = "Comment",
+    Value = "Comment",
   }) do
     vim.api.nvim_set_hl(ns_id, "Todoview" .. group, { link = link })
   end
