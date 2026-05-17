@@ -1,36 +1,12 @@
 local M = {}
 
----@class todoview.Config.Completion
----@field pending_icon? string
----@field completed_icon? string
----@field overdue_icon? string
-
----@class todoview.Config.Priority
----@field enable? boolean Enable priority rendering
----@field enable_completed? boolean Enable rendering on completed tasks
----@field hl_group? string|fun(letter: string): string?
-
----@class todoview.Config.Date
----@field enable? boolean Enable rendering of the date
----@field format? string How to format the date, as passed to `os.date`
-
----@class todoview.Config
----@field default_todo_file? string
----@field enable_overdue? boolean
----@field completion? todoview.Config.Completion
----@field priority? todoview.Config.Priority
----@field completion_date? todoview.Config.Date
----@field creation_date? todoview.Config.Date
----@field due_date? todoview.Config.Date
-
----@class todoview.InternalConfig
+---@class todoview.FullConfig
 ---@field default_todo_file string
----@field enable_overdue boolean
 ---@field completion todoview.Config.Completion
 ---@field priority todoview.Config.Priority
 ---@field completion_date todoview.Config.Date
 ---@field creation_date todoview.Config.Date
----@field due_date todoview.Config.Date
+---@field key_value todoview.Config.KeyValue
 local cfg = {}
 
 local state = {
@@ -200,43 +176,7 @@ end
 
 ---@param opts? todoview.Config
 function M.setup(opts)
-  cfg = vim.tbl_deep_extend("keep", opts, {
-    default_todo_file = "~/todo.txt",
-    enable_overdue = false,
-
-    completion = {
-      pending_icon = "",
-      completed_icon = "",
-      overdue_icon = "",
-    },
-
-    priority = {
-      enable = true,
-      enable_completed = false,
-      hl_group = function(letter)
-        local hl_groups = {
-          A = "TodoviewPrioA",
-          B = "TodoviewPrioB",
-          C = "TodoviewPrioC",
-          D = "TodoviewPrioD",
-        }
-        return hl_groups[letter] or "TodoviewPrioDefault"
-      end
-    },
-
-    completion_date = {
-      enable = true,
-      format = "%Y-%m-%d",
-    },
-    creation_date = {
-      enable = true,
-      format = "%Y-%m-%d",
-    },
-    due_date = {
-      enable = true,
-      format = "%Y-%m-%d",
-    },
-  })
+  cfg = vim.tbl_deep_extend("keep", opts, require("todoview.config").default_config())
 
   vim.api.nvim_create_user_command("Todoview", function(_args)
     M.toggle()

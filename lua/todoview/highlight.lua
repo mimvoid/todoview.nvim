@@ -19,7 +19,10 @@ function M.set_hl_groups()
     -- Dates
     CompletionDate = "@comment",
     CreationDate = "@comment",
-    DueDate = "@comment",
+
+    -- Key values
+    Key = "@comment",
+    Value = "@comment",
   }) do
     vim.api.nvim_set_hl(ns_id, "Todoview" .. group, { link = link })
   end
