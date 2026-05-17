@@ -56,8 +56,13 @@ function M.render_buf(buf, startrow, endrow)
   startrow = startrow or 0
   endrow = endrow or -1
 
-  if cfg.set_conceallevel and vim.wo.conceallevel < 2 then
-    vim.wo.conceallevel = 2
+  if cfg.set_conceallevel then
+    -- Set conceallevel for all windows with the buffer.
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_win_get_buf(win) == buf and vim.wo[win].conceallevel < 2 then
+        vim.wo[win].conceallevel = 2
+      end
+    end
   end
 
   -- Get namespaces.
