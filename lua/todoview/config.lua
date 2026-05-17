@@ -19,6 +19,7 @@
 
 ---@class todoview.Config
 ---@field default_todo_file? string
+---@field set_conceallevel? boolean
 ---@field completion? todoview.Config.Completion
 ---@field priority? todoview.Config.Priority
 ---@field completion_date? todoview.Config.Date
@@ -121,6 +122,7 @@ end
 function M.default_config()
   return {
     default_todo_file = "~/todo.txt",
+    set_conceallevel = true,
     completion = M.default_completion(),
     priority = M.default_priority(),
     completion_date = M.default_completion_date(),

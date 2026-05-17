@@ -2,6 +2,7 @@ local M = {}
 
 ---@class todoview.FullConfig
 ---@field default_todo_file string
+---@field set_conceallevel boolean
 ---@field completion todoview.Config.Completion
 ---@field priority todoview.Config.Priority
 ---@field completion_date todoview.Config.Date
@@ -55,7 +56,7 @@ function M.render_buf(buf, startrow, endrow)
   startrow = startrow or 0
   endrow = endrow or -1
 
-  if vim.wo.conceallevel < 2 then
+  if cfg.set_conceallevel and vim.wo.conceallevel < 2 then
     vim.wo.conceallevel = 2
   end
 
