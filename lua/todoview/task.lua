@@ -22,6 +22,7 @@ local M = {}
 ---@field projects table<string, todoview.Column>
 ---@field contexts table<string, todoview.Column>
 ---@field key_values table<string, todoview.TaskNode>
+---@field is_overdue fun(self: todoview.Task, time: integer?): boolean
 
 ---Length of a date string in YYYY-MM-DD (%Y-%m-%d) format.
 DATE_LEN = 10
@@ -53,6 +54,7 @@ function M.parse_task(str)
     projects = {},
     contexts = {},
     key_values = {},
+    is_overdue = M.is_overdue,
   }
 
   if str:sub(1, 2) == "x " then

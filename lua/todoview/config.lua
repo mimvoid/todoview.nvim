@@ -38,7 +38,7 @@ function M.default_completion()
       if task.completed then
         return { { " ", "TodoviewCompleted" } }
       end
-      if require("todoview.task").is_overdue(task) then
+      if task:is_overdue() then
         return { { " ", "TodoviewOverdue" } }
       end
       return { { " ", "TodoviewPending" } }
